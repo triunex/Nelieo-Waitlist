@@ -10,9 +10,6 @@ const GOAL_DEADLINE = new Date('2025-12-31');
 let charts = {};
 let refreshTimer = null;
 let isAuthenticated = false;
-let currentUsersSearch = '';
-let currentUsersPage = 1;
-const USERS_PAGE_SIZE = 50;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -138,8 +135,7 @@ async function loadAllData() {
             loadUsers(),
             loadAnalytics(),
             loadDatabaseStats(),
-            loadRecentActivity(),
-            loadLiveFeed()
+            loadRecentActivity()
         ]);
     } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -189,33 +185,12 @@ async function loadOverviewMetrics() {
 }
 
 // Load Users
-async function loadUsers(search = currentUsersSearch, page = currentUsersPage) {
-    const normalizedSearch = (search || '').trim();
-
-    const query = new URLSearchParams({
-        search: normalizedSearch,
-        page: String(page),
-        limit: String(USERS_PAGE_SIZE)
-    }).toString();
-
-    const users = await fetchAPI(`/users?${query}`);
-    if (!users || users.success === false) return;
-
-    currentUsersSearch = normalizedSearch;
-    currentUsersPage = parseInt(page, 10) || 1;
+async function loadUsers(search = '', page = 1) {
+    const users = await fetchAPI(`/users?search=${search}&page=${page}&limit=50`);
+    if (!users) return;
 
     const tbody = document.getElementById('usersTableBody');
     tbody.innerHTML = '';
-
-    if (!Array.isArray(users.data) || users.data.length === 0) {
-        const emptyRow = document.createElement('tr');
-        emptyRow.innerHTML = `
-            <td colspan="6" class="empty-state">No users found.</td>
-        `;
-        tbody.appendChild(emptyRow);
-        renderPagination({ page: 1, pages: 0 });
-        return;
-    }
 
     users.data.forEach(user => {
         const tr = document.createElement('tr');
@@ -241,43 +216,7 @@ async function loadUsers(search = currentUsersSearch, page = currentUsersPage) {
 
 function renderPagination(pagination) {
     const container = document.getElementById('usersPagination');
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    if (!pagination || pagination.pages <= 1) {
-        container.style.display = 'none';
-        return;
-    }
-
-    container.style.display = 'flex';
-
-    const pageNum = parseInt(pagination.page, 10) || 1;
-    const totalPages = parseInt(pagination.pages, 10) || 1;
-
-    const createButton = (label, targetPage, disabled = false) => {
-        const button = document.createElement('button');
-        button.className = 'pagination-btn';
-        button.textContent = label;
-        button.disabled = disabled;
-
-        if (!disabled) {
-            button.addEventListener('click', () => {
-                loadUsers(currentUsersSearch, targetPage);
-            });
-        }
-
-        return button;
-    };
-
-    container.appendChild(createButton('Previous', Math.max(1, pageNum - 1), pageNum <= 1));
-
-    const info = document.createElement('span');
-    info.className = 'page-info';
-    info.textContent = `Page ${pageNum} of ${totalPages}`;
-    container.appendChild(info);
-
-    container.appendChild(createButton('Next', Math.min(totalPages, pageNum + 1), pageNum >= totalPages));
+    // Pagination logic here
 }
 
 // Load Analytics
@@ -596,7 +535,7 @@ function viewUser(userId) {
 function deleteUser(userId) {
     if (confirm('Are you sure you want to delete this user?')) {
         fetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
-            .then(() => loadUsers(currentUsersSearch, currentUsersPage))
+            .then(() => loadUsers())
             .catch(error => console.error('Error deleting user:', error));
     }
 }
@@ -632,7 +571,7 @@ async function createBackup() {
 // Search Users
 function handleUserSearch(e) {
     const query = e.target.value;
-    loadUsers(query, 1);
+    loadUsers(query);
 }
 
 // Utility Functions

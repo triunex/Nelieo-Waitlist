@@ -17,51 +17,34 @@ app.use(express.static(__dirname));
 
 // SQLite database connection - supports production environment variable
 const dbPath = process.env.DB_PATH || path.join(__dirname, 'lumina_waitlist.db');
-db.pragma('journal_mode = WAL');
 const db = new Database(dbPath);
 
 // Enable WAL mode for better concurrent access
 db.pragma('journal_mode = WAL');
 
-function initializeDatabase() {
-    try {
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS waitlist (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                company TEXT,
-                use_case TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        db.exec('CREATE INDEX IF NOT EXISTS idx_waitlist_email ON waitlist(email)');
-        db.exec('CREATE INDEX IF NOT EXISTS idx_waitlist_created_at ON waitlist(created_at)');
-
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS waitlist_analytics (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                event_type TEXT NOT NULL,
-                email TEXT,
-                metadata TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        db.exec('CREATE INDEX IF NOT EXISTS idx_waitlist_analytics_event ON waitlist_analytics(event_type)');
-        db.exec('CREATE INDEX IF NOT EXISTS idx_waitlist_analytics_created ON waitlist_analytics(created_at)');
-
-        const recordCount = db.prepare('SELECT COUNT(*) as count FROM waitlist').get().count;
-        console.log(`✅ SQLite schema ready (${recordCount} records)`);
-    } catch (error) {
-        console.error('❌ Database initialization error:', error);
-        process.exit(1);
-    }
-}
-
 console.log(`✅ Connected to SQLite database: ${dbPath}`);
-initializeDatabase();
+
+// Auto-initialize database tables if they don't exist
+try {
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS waitlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            company TEXT,
+            use_case TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_email ON waitlist(email)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_created_at ON waitlist(created_at)`);
+    
+    console.log('✅ Database tables verified/created');
+} catch (error) {
+    console.error('❌ Database initialization error:', error);
+    process.exit(1);
+}
 
 // Email transporter setup (optional for testing)
 let transporter = null;
@@ -407,7 +390,7 @@ async function sendConfirmationEmail(email, name, position) {
                             </div>
                             
                             <div class="feature-item">
-                                <div class="feature-icon">📣</div>
+                                <div class="feature-icon">�</div>
                                 <div class="feature-content">
                                     <div class="feature-title">Product Updates</div>
                                     <div class="feature-text">We'll keep you in the loop with development progress, new features, and launch dates.</div>

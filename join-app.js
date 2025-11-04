@@ -1,15 +1,7 @@
-// API Configuration
-const API_BASE_URL = (() => {
-    const { protocol, hostname, port } = window.location;
-    if (protocol === 'file:') {
-        return 'http://127.0.0.1:3001';
-    }
-    const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
-    if (isLocalHost && port !== '3001') {
-        return `http://${hostname}:3001`;
-    }
-    return '';
-})();
+// API Configuration - Works on local and production
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? (window.location.port === '3001' ? '' : 'http://localhost:3001')
+    : ''; // Production: use same domain
 
 // DOM Elements
 const form = document.getElementById('waitlistForm');
