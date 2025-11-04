@@ -8,6 +8,38 @@ console.log(`📦 Seeding database: ${dbPath}`);
 
 const db = new Database(dbPath);
 
+// Create tables if they don't exist
+console.log('📋 Creating tables if needed...');
+
+db.exec(`
+    CREATE TABLE IF NOT EXISTS waitlist (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        company TEXT,
+        use_case TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+`);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_email ON waitlist(email)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_created_at ON waitlist(created_at)`);
+
+db.exec(`
+    CREATE TABLE IF NOT EXISTS waitlist_analytics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_type TEXT NOT NULL,
+        email TEXT,
+        metadata TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+`);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_event_type ON waitlist_analytics(event_type)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON waitlist_analytics(created_at)`);
+
+console.log('✅ Tables ready');
+
 const seedData = [
     { name: "Shourya Sharma", email: "triunex.shorya@gmail.com", company: null, use_case: "Testing", created_at: "2024-11-01 10:30:00" },
     { name: "Shourya Sharma", email: "sharmashorya934@gmail.com", company: null, use_case: "Testing", created_at: "2024-11-01 11:00:00" },
