@@ -15,8 +15,8 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
 
-// SQLite database connection
-const dbPath = path.join(__dirname, 'lumina_waitlist.db');
+// SQLite database connection - supports production environment variable
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'lumina_waitlist.db');
 const db = new Database(dbPath);
 
 // Enable WAL mode for better concurrent access
