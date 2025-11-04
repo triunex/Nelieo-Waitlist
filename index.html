@@ -10,14 +10,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 </head>
 <body>
     <!-- Background Image -->
     <div class="background-image"></div>
     
-    <!-- Navigation - Desktop -->
-    <nav class="navbar desktop-nav">
+    <!-- Navigation -->
+    <nav class="navbar">
         <div class="nav-container">
             <div class="logo">
                 <img src="nelieo-mark.png" alt="Nelieo mark" class="logo-img" />
@@ -33,34 +32,6 @@
             </div>
         </div>
     </nav>
-
-    <!-- Navigation - Mobile Pill Nav -->
-    <div class="pill-nav-container mobile-only">
-        <nav class="pill-nav" aria-label="Primary">
-            <a class="pill-logo" href="#" aria-label="Home">
-                <img src="nelieo-mark.png" alt="Nelieo" class="pill-logo-img" />
-            </a>
-
-            <button class="mobile-menu-button" aria-label="Toggle menu">
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-            </button>
-        </nav>
-
-        <div class="mobile-menu-popover">
-            <ul class="mobile-menu-list">
-                <li>
-                    <a href="#" class="mobile-menu-link is-active">Home</a>
-                </li>
-                <li>
-                    <a href="#careers" class="mobile-menu-link">Open Roles</a>
-                </li>
-                <li>
-                    <a href="#insights" class="mobile-menu-link">Insights</a>
-                </li>
-            </ul>
-        </div>
-    </div>
 
     <!-- Hero Section -->
     <section class="hero">
@@ -282,89 +253,6 @@
                 document.addEventListener('touchstart', initAudio, { once: true });
             }
         });
-
-        // Mobile Pill Nav - Menu Toggle Animation
-        const mobileMenuButton = document.querySelector('.mobile-menu-button');
-        const mobileMenuPopover = document.querySelector('.mobile-menu-popover');
-        const hamburgerLines = document.querySelectorAll('.hamburger-line');
-        const pillLogo = document.querySelector('.pill-logo');
-        const pillLogoImg = document.querySelector('.pill-logo-img');
-        let isMobileMenuOpen = false;
-
-        if (mobileMenuButton && mobileMenuPopover) {
-            // Initial state
-            gsap.set(mobileMenuPopover, { visibility: 'hidden', opacity: 0, y: -10 });
-
-            // Logo hover rotation
-            if (pillLogo && pillLogoImg) {
-                pillLogo.addEventListener('mouseenter', () => {
-                    gsap.to(pillLogoImg, {
-                        rotate: 360,
-                        duration: 0.6,
-                        ease: 'power2.out'
-                    });
-                });
-            }
-
-            // Toggle menu
-            mobileMenuButton.addEventListener('click', () => {
-                isMobileMenuOpen = !isMobileMenuOpen;
-
-                if (isMobileMenuOpen) {
-                    // Open animation
-                    gsap.to(hamburgerLines[0], { rotation: 45, y: 3.5, duration: 0.3, ease: 'power2.out' });
-                    gsap.to(hamburgerLines[1], { rotation: -45, y: -3.5, duration: 0.3, ease: 'power2.out' });
-                    
-                    gsap.set(mobileMenuPopover, { visibility: 'visible' });
-                    gsap.to(mobileMenuPopover, {
-                        opacity: 1,
-                        y: 0,
-                        duration: 0.4,
-                        ease: 'power2.out'
-                    });
-                } else {
-                    // Close animation
-                    gsap.to(hamburgerLines[0], { rotation: 0, y: 0, duration: 0.3, ease: 'power2.out' });
-                    gsap.to(hamburgerLines[1], { rotation: 0, y: 0, duration: 0.3, ease: 'power2.out' });
-                    
-                    gsap.to(mobileMenuPopover, {
-                        opacity: 0,
-                        y: -10,
-                        duration: 0.3,
-                        ease: 'power2.in',
-                        onComplete: () => {
-                            gsap.set(mobileMenuPopover, { visibility: 'hidden' });
-                        }
-                    });
-                }
-            });
-
-            // Close menu when clicking a link
-            const mobileMenuLinks = document.querySelectorAll('.mobile-menu-link');
-            mobileMenuLinks.forEach(link => {
-                link.addEventListener('click', () => {
-                    if (isMobileMenuOpen) {
-                        mobileMenuButton.click();
-                    }
-                });
-            });
-
-            // Initial load animation for mobile nav
-            if (window.innerWidth <= 768) {
-                gsap.from(pillLogo, {
-                    scale: 0,
-                    duration: 0.6,
-                    ease: 'back.out(1.7)',
-                    delay: 0.2
-                });
-                gsap.from(mobileMenuButton, {
-                    scale: 0,
-                    duration: 0.6,
-                    ease: 'back.out(1.7)',
-                    delay: 0.3
-                });
-            }
-        }
 
         // Initialize Lenis Smooth Scroll
         const lenis = new Lenis({

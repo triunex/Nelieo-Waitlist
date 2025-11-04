@@ -541,6 +541,266 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// ============================================
+// ADMIN API ENDPOINTS
+// ============================================
+
+// Admin Overview Stats
+app.get('/api/admin/stats', (req, res) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const lastWeek = new Date(today);
+        lastWeek.setDate(lastWeek.getDate() - 7);
+
+        // Total signups
+        const totalSignups = db.prepare('SELECT COUNT(*) as count FROM waitlist').get().count;
+        
+        // Today's signups
+        const todaySignups = db.prepare(
+            'SELECT COUNT(*) as count FROM waitlist WHERE created_at >= ?'
+        ).get(today.toISOString()).count;
+
+        // Last week's signups
+        const lastWeekSignups = db.prepare(
+            'SELECT COUNT(*) as count FROM waitlist WHERE created_at >= ? AND created_at < ?'
+        ).get(lastWeek.toISOString(), today.toISOString()).count;
+
+        // This week's signups
+        const thisWeekStart = new Date(today);
+        thisWeekStart.setDate(thisWeekStart.getDate() - 7);
+        const thisWeekSignups = db.prepare(
+            'SELECT COUNT(*) as count FROM waitlist WHERE created_at >= ?'
+        ).get(thisWeekStart.toISOString()).count;
+
+        // Weekly growth percentage
+        const weeklyGrowth = lastWeekSignups > 0 
+            ? (((thisWeekSignups - lastWeekSignups) / lastWeekSignups) * 100).toFixed(1)
+            : 0;
+
+        // Signups per hour (today)
+        const hoursElapsed = Math.max(1, Math.floor((Date.now() - today.getTime()) / (1000 * 60 * 60)));
+        const signupsPerHour = (todaySignups / hoursElapsed).toFixed(1);
+
+        // Mock conversion rate (replace with real analytics data)
+        const totalVisitors = totalSignups * 3; // Rough estimate: 33% conversion
+        const conversionRate = ((totalSignups / totalVisitors) * 100).toFixed(1);
+
+        res.json({
+            success: true,
+            totalSignups,
+            todaySignups,
+            weeklyGrowth: parseFloat(weeklyGrowth),
+            signupsPerHour: parseFloat(signupsPerHour),
+            conversionRate: parseFloat(conversionRate),
+            totalVisitors
+        });
+    } catch (error) {
+        console.error('Admin stats error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Admin Users List
+app.get('/api/admin/users', (req, res) => {
+    try {
+        const { search = '', page = 1, limit = 50 } = req.query;
+        const offset = (page - 1) * limit;
+
+        let query = 'SELECT * FROM waitlist';
+        let countQuery = 'SELECT COUNT(*) as total FROM waitlist';
+        const params = [];
+
+        if (search) {
+            query += ' WHERE name LIKE ? OR email LIKE ?';
+            countQuery += ' WHERE name LIKE ? OR email LIKE ?';
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+        params.push(parseInt(limit), parseInt(offset));
+
+        const users = db.prepare(query).all(...params);
+        const total = db.prepare(countQuery).get(...(search ? [`%${search}%`, `%${search}%`] : [])).total;
+
+        res.json({
+            success: true,
+            data: users,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Admin users error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Admin Analytics
+app.get('/api/admin/analytics', (req, res) => {
+    try {
+        // Use case distribution
+        const useCases = db.prepare(`
+            SELECT use_case, COUNT(*) as count 
+            FROM waitlist 
+            WHERE use_case IS NOT NULL 
+            GROUP BY use_case
+        `).all();
+
+        const useCaseData = {};
+        useCases.forEach(row => {
+            useCaseData[row.use_case] = row.count;
+        });
+
+        // Mock funnel data (replace with real analytics)
+        const totalSignups = db.prepare('SELECT COUNT(*) as count FROM waitlist').get().count;
+        const funnel = [
+            totalSignups * 6, // Visitors (estimate)
+            totalSignups * 4, // Page views
+            totalSignups * 2, // Form starts
+            totalSignups       // Submissions
+        ];
+
+        // Mock traffic sources
+        const sources = {
+            'Direct': Math.floor(totalSignups * 0.4),
+            'Twitter': Math.floor(totalSignups * 0.3),
+            'LinkedIn': Math.floor(totalSignups * 0.2),
+            'Other': Math.floor(totalSignups * 0.1)
+        };
+
+        res.json({
+            success: true,
+            useCases: useCaseData,
+            funnel,
+            sources
+        });
+    } catch (error) {
+        console.error('Admin analytics error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Admin Database Stats
+app.get('/api/admin/database', (req, res) => {
+    try {
+        const fs = require('fs');
+        const stats = fs.statSync(dbPath);
+        const totalRecords = db.prepare('SELECT COUNT(*) as count FROM waitlist').get().count;
+
+        // Measure query performance
+        const startTime = Date.now();
+        db.prepare('SELECT * FROM waitlist LIMIT 100').all();
+        const queryTime = Date.now() - startTime;
+
+        res.json({
+            success: true,
+            size: stats.size,
+            totalRecords,
+            avgQueryTime: queryTime,
+            lastBackup: 'Not configured', // Update with real backup system
+            health: 'Excellent'
+        });
+    } catch (error) {
+        console.error('Admin database error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Admin Recent Activity
+app.get('/api/admin/activity/recent', (req, res) => {
+    try {
+        const recentUsers = db.prepare(`
+            SELECT * FROM waitlist 
+            ORDER BY created_at DESC 
+            LIMIT 20
+        `).all();
+
+        res.json(recentUsers);
+    } catch (error) {
+        console.error('Admin activity error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Admin Live Feed
+app.get('/api/admin/activity/live', (req, res) => {
+    try {
+        const lastMinute = new Date(Date.now() - 60000).toISOString();
+        const liveActivity = db.prepare(`
+            SELECT * FROM waitlist 
+            WHERE created_at >= ? 
+            ORDER BY created_at DESC
+        `).all(lastMinute);
+
+        res.json(liveActivity);
+    } catch (error) {
+        console.error('Admin live feed error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Delete User
+app.delete('/api/admin/users/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        db.prepare('DELETE FROM waitlist WHERE id = ?').run(id);
+        
+        res.json({ success: true, message: 'User deleted successfully' });
+    } catch (error) {
+        console.error('Delete user error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Export CSV
+app.get('/api/admin/export/csv', (req, res) => {
+    try {
+        const users = db.prepare('SELECT * FROM waitlist ORDER BY created_at DESC').all();
+        
+        // Generate CSV
+        let csv = 'Name,Email,Company,Use Case,Joined\n';
+        users.forEach(user => {
+            csv += `"${user.name}","${user.email}","${user.company || ''}","${user.use_case || ''}","${user.created_at}"\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="nelieo-waitlist-${Date.now()}.csv"`);
+        res.send(csv);
+    } catch (error) {
+        console.error('Export CSV error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Create Backup
+app.post('/api/admin/backup', (req, res) => {
+    try {
+        const fs = require('fs');
+        const backupPath = path.join(__dirname, `backups/lumina_waitlist_${Date.now()}.db`);
+        
+        // Create backups directory if it doesn't exist
+        if (!fs.existsSync(path.join(__dirname, 'backups'))) {
+            fs.mkdirSync(path.join(__dirname, 'backups'));
+        }
+
+        // Copy database file
+        fs.copyFileSync(dbPath, backupPath);
+
+        res.json({ 
+            success: true, 
+            message: 'Backup created successfully',
+            backupPath
+        });
+    } catch (error) {
+        console.error('Backup error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Serve index.html for root
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
