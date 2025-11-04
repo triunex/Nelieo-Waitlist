@@ -2,10 +2,10 @@
   "name": "lumina-waitlist",
   "version": "1.0.0",
   "description": "Beautiful waitlist landing page with glassmorphism effects",
-  "main": "server.js",
+  "main": "server-sqlite.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node server-sqlite.js",
+    "dev": "nodemon server-sqlite.js",
     "init-db": "node init-db.js"
   },
   "keywords": [
