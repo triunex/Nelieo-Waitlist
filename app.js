@@ -1,7 +1,7 @@
-// API Configuration
-const API_BASE_URL = window.location.port === '3001' 
-    ? '' // Same server
-    : 'http://localhost:3001'; // Different server (e.g., Live Server)
+// API Configuration - Works on local and production
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? (window.location.port === '3001' ? '' : 'http://localhost:3001')
+    : ''; // Production: use same domain
 
 // DOM Elements
 const waitlistTrigger = document.querySelector('.waitlist-trigger');
