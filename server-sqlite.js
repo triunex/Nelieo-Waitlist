@@ -24,6 +24,28 @@ db.pragma('journal_mode = WAL');
 
 console.log(`✅ Connected to SQLite database: ${dbPath}`);
 
+// Auto-initialize database tables if they don't exist
+try {
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS waitlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            company TEXT,
+            use_case TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_email ON waitlist(email)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_created_at ON waitlist(created_at)`);
+    
+    console.log('✅ Database tables verified/created');
+} catch (error) {
+    console.error('❌ Database initialization error:', error);
+    process.exit(1);
+}
+
 // Email transporter setup (optional for testing)
 let transporter = null;
 const emailConfigured = process.env.SMTP_USER && process.env.SMTP_PASS;
