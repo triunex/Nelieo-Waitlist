@@ -1,19 +1,20 @@
 {
-  "name": "lumina-waitlist",
+  "name": "nelieo-waitlist",
   "version": "1.0.0",
-  "description": "Beautiful waitlist landing page with glassmorphism effects",
-  "main": "server.js",
+  "description": "Beautiful waitlist landing page with glassmorphism effects - SQLite version",
+  "main": "server-sqlite.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "init-db": "node init-db.js"
+    "start": "node server-sqlite.js",
+    "dev": "nodemon server-sqlite.js",
+    "init-db": "node init-db-sqlite.js"
   },
   "keywords": [
     "waitlist",
     "landing-page",
-    "glassmorphism"
+    "glassmorphism",
+    "sqlite"
   ],
-  "author": "",
+  "author": "Triunex",
   "license": "MIT",
   "dependencies": {
     "better-sqlite3": "^12.4.1",
