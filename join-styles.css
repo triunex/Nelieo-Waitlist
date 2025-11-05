@@ -517,6 +517,12 @@ select option[value=""] {
     display: none;
     text-align: center;
     animation: fadeInUp 0.5s ease;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 48px 32px;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
 .success-container.show {
@@ -538,34 +544,42 @@ select option[value=""] {
 }
 
 .success-container h2 {
-    font-size: 28px;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 12px;
+    font-size: 32px;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
 }
 
 .success-container p {
-    font-size: 15px;
-    color: #666;
+    font-size: 17px;
+    color: #1a1a1a;
     line-height: 1.6;
     margin-bottom: 12px;
+    font-weight: 500;
 }
 
 .success-container p strong {
-    color: #000;
+    color: #000000;
+    font-weight: 700;
+    font-size: 18px;
 }
 
 .position-info {
-    margin-top: 20px;
-    padding: 16px;
-    background: #f9fafb;
+    margin-top: 24px;
+    padding: 20px;
+    background: #f0fdf4;
+    border: 2px solid #10b981;
     border-radius: 12px;
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #000000;
 }
 
 .position-info strong {
-    font-size: 20px;
+    font-size: 24px;
     color: #10b981;
+    font-weight: 800;
 }
 
 .back-button {
