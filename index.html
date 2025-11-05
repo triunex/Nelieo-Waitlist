@@ -66,7 +66,7 @@
             <!-- Stats -->
             <div class="stats">
                 <div class="stat-item glass-mini">
-                    <div class="stat-number" id="waitlistCount">0</div>
+                    <div class="stat-number" id="waitlistCount">150</div>
                     <div class="stat-label">On Waitlist</div>
                 </div>
                 <div class="stat-item glass-mini">
@@ -177,9 +177,9 @@
                 if (data.success && data.count !== undefined) {
                     const countElement = document.getElementById('waitlistCount');
                     if (countElement) {
-                        // Animate the count
-                        const currentCount = parseInt(countElement.textContent) || 0;
-                        const newCount = data.count;
+                        // Animate the count (add 150 baseline to Firebase count)
+                        const currentCount = parseInt(countElement.textContent) || 150;
+                        const newCount = data.count + 150;
                         
                         if (newCount !== currentCount) {
                             // Simple count animation
