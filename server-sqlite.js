@@ -4,7 +4,6 @@ const Database = require('better-sqlite3');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const validator = require('validator');
-const nodemailer = require('nodemailer');
 const path = require('path');
 
 const app = express();
@@ -24,42 +23,56 @@ db.pragma('journal_mode = WAL');
 
 console.log(`✅ Connected to SQLite database: ${dbPath}`);
 
-// Email transporter setup (optional for testing)
-let transporter = null;
-const emailConfigured = process.env.SMTP_USER && process.env.SMTP_PASS;
+// Ensure database schema exists (safe idempotent initialization)
+try {
+    console.log('📋 Ensuring DB schema...');
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS waitlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            email TEXT UNIQUE,
+            company TEXT,
+            use_case TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
 
-if (emailConfigured) {
-    transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: false,
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-        },
-        connectionTimeout: 10000, // 10 seconds
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
-        pool: true,
-        maxConnections: 5,
-        maxMessages: 100,
-        rateDelta: 1000,
-        rateLimit: 5
-    });
+        CREATE INDEX IF NOT EXISTS idx_email ON waitlist(email);
+        CREATE INDEX IF NOT EXISTS idx_created_at ON waitlist(created_at);
 
-    // Verify email configuration (non-blocking)
-    transporter.verify((error, success) => {
-        if (error) {
-            console.log('⚠️  Email configuration error:', error.message);
-            console.log('⚠️  Will continue with mock email mode');
-            // Don't nullify transporter - let it try to send anyway
-        } else {
-            console.log('✅ Email server ready');
-        }
-    });
+        CREATE TABLE IF NOT EXISTS waitlist_analytics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT,
+            email TEXT,
+            metadata TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_event_type ON waitlist_analytics(event_type);
+        CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON waitlist_analytics(created_at);
+    `);
+    console.log('✅ DB schema ready');
+} catch (err) {
+    console.error('❌ Failed to initialize DB schema:', err);
+}
+
+// Email provider selection: Resend preferred, SendGrid fallback, otherwise mock
+let emailProvider = null;
+let resend = null;
+let sendgrid = null;
+if (process.env.RESEND_API_KEY) {
+    const { Resend } = require('resend');
+    resend = new Resend(process.env.RESEND_API_KEY);
+    emailProvider = 'resend';
+    console.log('✅ Email provider: Resend');
+} else if (process.env.SENDGRID_API_KEY) {
+    const sgMail = require('@sendgrid/mail');
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    sendgrid = sgMail;
+    emailProvider = 'sendgrid';
+    console.log('✅ Email provider: SendGrid');
 } else {
-    console.log('⚠️  Email not configured - running without email notifications');
-    console.log('To enable emails, set SMTP_USER and SMTP_PASS in .env file');
+    console.log('⚠️  No email provider configured. Running in mock email mode.');
+    console.log('To enable emails, set RESEND_API_KEY or SENDGRID_API_KEY in Render environment');
 }
 
 // Seed initial data if SEED_DATA environment variable is set
@@ -186,403 +199,100 @@ app.get('/api/waitlist/count', async (req, res) => {
 // Email Templates
 
 async function sendConfirmationEmail(email, name, position) {
-    if (!transporter) {
+    if (!emailProvider) {
         console.log(`📧 [Mock] Would send confirmation email to ${email} (position ${position})`);
         return;
     }
-    
+
     try {
-        const mailOptions = {
-        from: `"Nelieo" <${process.env.SMTP_USER}>`,
-        to: email,
-        subject: "Welcome to Nelieo — You're In! 🚀",
-        html: `
+        const htmlBody = `
             <!DOCTYPE html>
             <html>
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
-                    * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                    }
-                    body {
-                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                        line-height: 1.6;
-                        color: #1a1a1a;
-                        background-color: #ffffff;
-                        padding: 0;
-                        margin: 0;
-                    }
-                    .email-wrapper {
-                        max-width: 600px;
-                        margin: 0 auto;
-                        background-color: #ffffff;
-                    }
-                    .header {
-                        padding: 48px 40px 32px;
-                        text-align: center;
-                        background-color: #000000;
-                        border-bottom: 1px solid #e5e5e5;
-                    }
-                    .logo {
-                        font-size: 28px;
-                        font-weight: 700;
-                        color: #ffffff;
-                        letter-spacing: -0.5px;
-                        margin-bottom: 16px;
-                    }
-                    .header-subtitle {
-                        font-size: 15px;
-                        color: #a3a3a3;
-                        font-weight: 400;
-                    }
-                    .hero {
-                        padding: 48px 40px;
-                        text-align: center;
-                        background-color: #fafafa;
-                    }
-                    .hero-title {
-                        font-size: 32px;
-                        font-weight: 700;
-                        color: #000000;
-                        margin-bottom: 12px;
-                        letter-spacing: -0.8px;
-                        line-height: 1.2;
-                    }
-                    .hero-subtitle {
-                        font-size: 16px;
-                        color: #737373;
-                        margin-bottom: 32px;
-                    }
-                    .position-badge {
-                        display: inline-block;
-                        padding: 16px 32px;
-                        background-color: #000000;
-                        color: #ffffff;
-                        font-size: 24px;
-                        font-weight: 700;
-                        border-radius: 8px;
-                        letter-spacing: -0.5px;
-                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                    }
-                    .content {
-                        padding: 48px 40px;
-                        background-color: #ffffff;
-                    }
-                    .content-title {
-                        font-size: 20px;
-                        font-weight: 700;
-                        color: #000000;
-                        margin-bottom: 24px;
-                        letter-spacing: -0.4px;
-                    }
-                    .feature-list {
-                        margin: 0 0 32px 0;
-                        padding: 0;
-                    }
-                    .feature-item {
-                        display: flex;
-                        align-items: flex-start;
-                        margin-bottom: 20px;
-                        padding: 20px;
-                        background-color: #fafafa;
-                        border-radius: 8px;
-                        border: 1px solid #e5e5e5;
-                    }
-                    .feature-icon {
-                        flex-shrink: 0;
-                        width: 24px;
-                        height: 24px;
-                        margin-right: 16px;
-                        font-size: 20px;
-                        line-height: 24px;
-                    }
-                    .feature-content {
-                        flex: 1;
-                    }
-                    .feature-title {
-                        font-size: 15px;
-                        font-weight: 600;
-                        color: #000000;
-                        margin-bottom: 4px;
-                    }
-                    .feature-text {
-                        font-size: 14px;
-                        color: #737373;
-                        line-height: 1.5;
-                    }
-                    .cta-section {
-                        text-align: center;
-                        padding: 32px 40px;
-                        background-color: #fafafa;
-                        border-top: 1px solid #e5e5e5;
-                        border-bottom: 1px solid #e5e5e5;
-                    }
-                    .cta-text {
-                        font-size: 15px;
-                        color: #525252;
-                        margin-bottom: 20px;
-                        line-height: 1.6;
-                    }
-                    .button {
-                        display: inline-block;
-                        padding: 14px 28px;
-                        background-color: #000000;
-                        color: #ffffff;
-                        text-decoration: none;
-                        border-radius: 6px;
-                        font-weight: 600;
-                        font-size: 15px;
-                        transition: all 0.2s ease;
-                        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-                    }
-                    .button:hover {
-                        background-color: #1a1a1a;
-                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                    }
-                    .footer {
-                        padding: 40px 40px 48px;
-                        text-align: center;
-                        background-color: #ffffff;
-                    }
-                    .footer-text {
-                        font-size: 13px;
-                        color: #a3a3a3;
-                        margin-bottom: 8px;
-                        line-height: 1.5;
-                    }
-                    .footer-link {
-                        color: #737373;
-                        text-decoration: none;
-                    }
-                    .footer-link:hover {
-                        color: #000000;
-                    }
-                    .divider {
-                        height: 1px;
-                        background-color: #e5e5e5;
-                        margin: 32px 0;
-                    }
-                    @media only screen and (max-width: 600px) {
-                        .header, .hero, .content, .cta-section, .footer {
-                            padding-left: 24px;
-                            padding-right: 24px;
-                        }
-                        .hero-title {
-                            font-size: 28px;
-                        }
-                        .position-badge {
-                            font-size: 20px;
-                            padding: 12px 24px;
-                        }
-                    }
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height:1.6; color:#1a1a1a; background:#fff; padding:0; margin:0; }
+                    .email-wrapper{max-width:600px;margin:0 auto;background:#fff}
+                    .header{padding:48px 40px 32px;text-align:center;background:#000;border-bottom:1px solid #e5e5e5}
+                    .logo{font-size:28px;font-weight:700;color:#fff;margin-bottom:16px}
+                    .hero{padding:48px 40px;text-align:center;background:#fafafa}
+                    .hero-title{font-size:32px;font-weight:700;color:#000;margin-bottom:12px}
+                    .position-badge{display:inline-block;padding:16px 32px;background:#000;color:#fff;font-size:24px;font-weight:700;border-radius:8px}
+                    .content{padding:48px 40px;background:#fff}
+                    .footer{padding:40px 40px 48px;text-align:center;background:#fff}
                 </style>
             </head>
             <body>
                 <div class="email-wrapper">
-                    <!-- Header -->
-                    <div class="header">
-                        <div class="logo">nelieo</div>
-                        <div class="header-subtitle">Autonomous Cloud Employees</div>
-                    </div>
-                    
-                    <!-- Hero Section -->
-                    <div class="hero">
-                        <h1 class="hero-title">You're on the Waitlist!</h1>
-                        <p class="hero-subtitle">Hi ${name}, welcome to the future of work</p>
-                        <div class="position-badge">Position #${position}</div>
-                    </div>
-                    
-                    <!-- Main Content -->
-                    <div class="content">
-                        <h2 class="content-title">What Happens Next?</h2>
-                        
-                        <div class="feature-list">
-                            <div class="feature-item">
-                                <div class="feature-icon">🚀</div>
-                                <div class="feature-content">
-                                    <div class="feature-title">Early Access</div>
-                                    <div class="feature-text">You'll be among the first to experience Nelieo when we launch. Get priority access to all features.</div>
-                                </div>
-                            </div>
-                            
-                            <div class="feature-item">
-                                <div class="feature-icon">�</div>
-                                <div class="feature-content">
-                                    <div class="feature-title">Product Updates</div>
-                                    <div class="feature-text">We'll keep you in the loop with development progress, new features, and launch dates.</div>
-                                </div>
-                            </div>
-                            
-                            <div class="feature-item">
-                                <div class="feature-icon">💡</div>
-                                <div class="feature-content">
-                                    <div class="feature-title">Exclusive Insights</div>
-                                    <div class="feature-text">Get insider tips and best practices on how to maximize Nelieo for your specific use case.</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- CTA Section -->
-                    <div class="cta-section">
-                        <p class="cta-text">We're building something incredible. Get ready to transform your workflow with AI-powered autonomous employees.</p>
-                        <a href="${process.env.APP_URL || 'http://localhost:3001'}" class="button">Learn More About Nelieo</a>
-                    </div>
-                    
-                    <!-- Footer -->
-                    <div class="footer">
-                        <p class="footer-text">© 2025 Nelieo. All rights reserved.</p>
-                        <p class="footer-text">You're receiving this because you joined our waitlist.</p>
-                    </div>
+                    <div class="header"><div class="logo">nelieo</div></div>
+                    <div class="hero"><h1 class="hero-title">You're on the Waitlist!</h1><p>Hi ${name}</p><div class="position-badge">Position #${position}</div></div>
+                    <div class="content"><p>Thanks for joining the Nelieo waitlist — we’ll be in touch.</p></div>
+                    <div class="footer"><p>© 2025 Nelieo</p></div>
                 </div>
             </body>
-            </html>
-        `
-        };
+            </html>`;
 
-        return await transporter.sendMail(mailOptions);
+        const fromAddress = process.env.FROM_EMAIL || 'Nelieo <onboarding@resend.dev>';
+
+        if (emailProvider === 'resend') {
+            const emailData = { from: fromAddress, to: email, subject: "Welcome to Nelieo — You're In! 🚀", html: htmlBody };
+            const { data, error } = await resend.emails.send(emailData);
+            if (error) { console.error(`❌ Failed to send confirmation email to ${email}:`, error.message || error); throw error; }
+            return data;
+        } else if (emailProvider === 'sendgrid') {
+            const msg = { to: email, from: fromAddress, subject: "Welcome to Nelieo — You're In! 🚀", html: htmlBody };
+            const [response] = await sendgrid.send(msg);
+            return response;
+        }
     } catch (error) {
-        console.error(`❌ Failed to send confirmation email to ${email}:`, error.message);
+        console.error(`❌ Failed to send confirmation email to ${email}:`, error.message || error);
         throw error;
     }
 }
 
 async function sendAdminNotification(name, email, company, useCase, position) {
     if (!process.env.ADMIN_EMAIL) return;
-    
-    if (!transporter) {
+
+    if (!emailProvider) {
         console.log(`📧 [Mock] Would send admin notification for ${name} (${email})`);
         return;
     }
 
     try {
-        const mailOptions = {
-        from: `"Nelieo Waitlist" <${process.env.SMTP_USER}>`,
-        to: process.env.ADMIN_EMAIL,
-        subject: `🎉 New Signup: ${name} (#${position})`,
-        html: `
+        const htmlBody = `
             <!DOCTYPE html>
             <html>
             <head>
-                <style>
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                        line-height: 1.6;
-                        color: #1a1a1a;
-                        max-width: 600px;
-                        margin: 0 auto;
-                        padding: 20px;
-                        background-color: #fafafa;
-                    }
-                    .container {
-                        background: #ffffff;
-                        border-radius: 8px;
-                        padding: 32px;
-                        border: 1px solid #e5e5e5;
-                        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-                    }
-                    .header {
-                        padding-bottom: 24px;
-                        border-bottom: 2px solid #000000;
-                        margin-bottom: 24px;
-                    }
-                    .title {
-                        font-size: 24px;
-                        font-weight: 700;
-                        color: #000000;
-                        margin: 0 0 8px 0;
-                        letter-spacing: -0.5px;
-                    }
-                    .badge {
-                        display: inline-block;
-                        padding: 6px 12px;
-                        background-color: #000000;
-                        color: #ffffff;
-                        font-size: 13px;
-                        font-weight: 600;
-                        border-radius: 4px;
-                        letter-spacing: 0.5px;
-                    }
-                    .info-grid {
-                        display: table;
-                        width: 100%;
-                        margin-top: 24px;
-                    }
-                    .info-row {
-                        display: table-row;
-                    }
-                    .info-label {
-                        display: table-cell;
-                        padding: 12px 16px 12px 0;
-                        font-weight: 600;
-                        color: #525252;
-                        font-size: 14px;
-                        width: 120px;
-                    }
-                    .info-value {
-                        display: table-cell;
-                        padding: 12px 0;
-                        color: #000000;
-                        font-size: 14px;
-                    }
-                    .timestamp {
-                        margin-top: 24px;
-                        padding-top: 24px;
-                        border-top: 1px solid #e5e5e5;
-                        font-size: 13px;
-                        color: #737373;
-                    }
-                </style>
+                <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a;padding:20px;background:#fafafa} .container{background:#fff;border-radius:8px;padding:32px;border:1px solid #e5e5e5}</style>
             </head>
             <body>
                 <div class="container">
-                    <div class="header">
-                        <h1 class="title">New Waitlist Signup</h1>
-                        <span class="badge">POSITION #${position}</span>
-                    </div>
-                    
-                    <div class="info-grid">
-                        <div class="info-row">
-                            <div class="info-label">Name:</div>
-                            <div class="info-value">${name}</div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Email:</div>
-                            <div class="info-value"><a href="mailto:${email}" style="color: #000000; text-decoration: none;">${email}</a></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Company:</div>
-                            <div class="info-value">${company || 'Not specified'}</div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Use Case:</div>
-                            <div class="info-value" style="text-transform: capitalize;">${useCase.replace('-', ' ')}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="timestamp">
-                        Joined: ${new Date().toLocaleString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}
-                    </div>
+                    <h1>New Waitlist Signup</h1>
+                    <p><strong>Name:</strong> ${name}</p>
+                    <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+                    <p><strong>Company:</strong> ${company || 'Not specified'}</p>
+                    <p><strong>Use case:</strong> ${useCase}</p>
+                    <p>Position: ${position}</p>
                 </div>
             </body>
-            </html>
-        `
-        };
+            </html>`;
 
-        return await transporter.sendMail(mailOptions);
+        const fromAddress = process.env.FROM_EMAIL || 'Nelieo Waitlist <onboarding@resend.dev>';
+
+        if (emailProvider === 'resend') {
+            const emailData = { from: fromAddress, to: process.env.ADMIN_EMAIL, subject: `🎉 New Signup: ${name} (#${position})`, html: htmlBody };
+            const { data, error } = await resend.emails.send(emailData);
+            if (error) { console.error(`❌ Failed to send admin notification for ${name}:`, error.message || error); throw error; }
+            return data;
+        } else if (emailProvider === 'sendgrid') {
+            const msg = { to: process.env.ADMIN_EMAIL, from: fromAddress, subject: `🎉 New Signup: ${name} (#${position})`, html: htmlBody };
+            const [response] = await sendgrid.send(msg);
+            return response;
+        }
     } catch (error) {
-        console.error(`❌ Failed to send admin notification for ${name}:`, error.message);
+        console.error(`❌ Failed to send admin notification for ${name}:`, error.message || error);
         throw error;
     }
 }
