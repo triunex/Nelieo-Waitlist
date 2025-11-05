@@ -1,7 +1,7 @@
-// API Configuration - Works on local and production
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? (window.location.port === '3001' ? '' : 'http://localhost:3001')
-    : ''; // Production: use same domain
+// API Configuration
+const API_BASE_URL = window.location.port === '3001' 
+    ? '' // Same server
+    : 'http://localhost:3001'; // Different server (e.g., Live Server)
 
 // DOM Elements
 const waitlistTrigger = document.querySelector('.waitlist-trigger');
@@ -97,15 +97,12 @@ function updateWaitlistCount(count) {
 // Fetch current waitlist count on page load
 async function fetchWaitlistCount() {
     try {
-        console.log('🔄 Fetching waitlist count from:', `${API_BASE_URL}/api/waitlist/count`);
         const response = await fetch(`${API_BASE_URL}/api/waitlist/count`);
         const data = await response.json();
-        console.log('📊 API Response:', data);
         
         if (data.success && typeof data.count === 'number') {
             // Start from 150 minimum, add real count
             const displayCount = 150 + data.count;
-            console.log(`✅ Updating count: 150 + ${data.count} = ${displayCount}`);
             
             if (waitlistCountElement) {
                 const currentCount = parseInt(waitlistCountElement.textContent.replace(/,/g, ''));
@@ -118,7 +115,6 @@ async function fetchWaitlistCount() {
             }
         }
     } catch (error) {
-        console.error('❌ Error fetching waitlist count:', error);
         // Show 150 if API fails
         if (waitlistCountElement) waitlistCountElement.textContent = '150';
         if (ctaCountElement) ctaCountElement.textContent = '150+';
