@@ -66,7 +66,7 @@
             <!-- Stats -->
             <div class="stats">
                 <div class="stat-item glass-mini">
-                    <div class="stat-number" id="waitlistCount">150</div>
+                    <div class="stat-number" id="waitlistCount">0</div>
                     <div class="stat-label">On Waitlist</div>
                 </div>
                 <div class="stat-item glass-mini">
@@ -169,6 +169,51 @@
 
     <script src="app.js"></script>
     <script>
+        // Fetch live waitlist count from Firebase
+        async function updateWaitlistCount() {
+            try {
+                const response = await fetch('/api/waitlist/count');
+                const data = await response.json();
+                if (data.success && data.count !== undefined) {
+                    const countElement = document.getElementById('waitlistCount');
+                    if (countElement) {
+                        // Animate the count
+                        const currentCount = parseInt(countElement.textContent) || 0;
+                        const newCount = data.count;
+                        
+                        if (newCount !== currentCount) {
+                            // Simple count animation
+                            const duration = 1000;
+                            const steps = 30;
+                            const increment = (newCount - currentCount) / steps;
+                            let current = currentCount;
+                            let step = 0;
+                            
+                            const timer = setInterval(() => {
+                                step++;
+                                current += increment;
+                                countElement.textContent = Math.round(current);
+                                
+                                if (step >= steps) {
+                                    clearInterval(timer);
+                                    countElement.textContent = newCount;
+                                }
+                            }, duration / steps);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch waitlist count:', error);
+                // Keep the placeholder count on error
+            }
+        }
+        
+        // Update count on page load
+        updateWaitlistCount();
+        
+        // Optionally refresh count every 30 seconds
+        setInterval(updateWaitlistCount, 30000);
+
         // Welcome sound effect on first visit
         window.addEventListener('DOMContentLoaded', () => {
             const hasVisited = sessionStorage.getItem('hasVisited');
