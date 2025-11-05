@@ -2,25 +2,51 @@
 
 ## Your Database Location
 
-**Production (Render):** `/opt/render/project/src/lumina_waitlist.db`
-**Local:** `n:\lumina-search-flow-main\waitlist\lumina_waitlist.db`
+**Production (Render):** `/opt/render/project/src/lumina_waitlist.db` (4 new real users)
+**Local:** `n:\lumina-search-flow-main\waitlist\lumina_waitlist.db` (your old test data)
+
+⚠️ **IMPORTANT:** These are TWO SEPARATE databases! 
+- `view-database.js` shows your LOCAL database (old test users)
+- `view-production-db.js` shows your PRODUCTION database (real users from nelieo.onrender.com)
 
 ---
 
-## Method 1: View Locally (Easiest)
+## Method 1: View Production Database (RECOMMENDED)
 
-Run this command in your waitlist folder:
+Run this command to see your **real production users** from Render:
+
+```bash
+cd N:\lumina-search-flow-main\waitlist
+node view-production-db.js
+```
+
+You'll be prompted for your `ADMIN_SECRET` (see setup below).
+
+### First Time Setup:
+1. Go to [Render Dashboard](https://dashboard.render.com/)
+2. Select your waitlist service
+3. Click **Environment** in the left sidebar
+4. Click **Add Environment Variable**
+5. Add:
+   - **Key:** `ADMIN_SECRET`
+   - **Value:** Choose a strong password (e.g., `MySecure123Password!`)
+6. Click **Save Changes**
+7. Wait ~30 seconds for Render to apply the change (no redeploy needed!)
+
+---
+
+## Method 2: View Local Database Only
+
+Run this command to see your **local test data** (NOT production):
 
 ```bash
 cd N:\lumina-search-flow-main\waitlist
 node view-database.js
 ```
 
-This will show all your waitlist entries in a nice table format.
-
 ---
 
-## Method 2: Via API (Production)
+## Method 3: Via Browser API (Production)
 
 I've added a protected admin endpoint to view all entries.
 
