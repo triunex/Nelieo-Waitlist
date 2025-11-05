@@ -29,28 +29,48 @@
     <div class="content-container">
         <div class="image-grid">
             <!-- Image Box 1 -->
-            <div class="image-box">
+            <div class="image-box" data-image="gallery/image-1.png">
                 <img src="gallery/image-1.png" alt="Nelieo Insight 1" />
             </div>
 
             <!-- Image Box 2 -->
-            <div class="image-box">
+            <div class="image-box" data-image="gallery/image-2.png">
                 <img src="gallery/image-2.png" alt="Nelieo Insight 2" />
             </div>
 
             <!-- Image Box 3 -->
-            <div class="image-box">
+            <div class="image-box" data-image="gallery/image-3.png">
                 <img src="gallery/image-3.png" alt="Nelieo Insight 3" />
             </div>
 
             <!-- Image Box 4 -->
-            <div class="image-box">
+            <div class="image-box" data-image="gallery/image-4.png">
                 <img src="gallery/image-4.png" alt="Nelieo Insight 4" />
             </div>
+        </div>
+    </div>
 
-            <!-- Image Box 5 -->
-            <div class="image-box">
-                <img src="gallery/image-5.png" alt="Nelieo Insight 5" />
+    <!-- Lightbox Modal -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-backdrop"></div>
+        <div class="lightbox-content">
+            <button class="lightbox-close" id="lightboxClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <img src="" alt="Enlarged view" id="lightboxImage" />
+            <div class="lightbox-nav">
+                <button class="lightbox-prev" id="lightboxPrev">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button class="lightbox-next" id="lightboxNext">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 18L15 12L9 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
