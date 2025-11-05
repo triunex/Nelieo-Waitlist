@@ -1,7 +1,5 @@
-// API Configuration
-const API_BASE_URL = window.location.port === '3001' 
-    ? '' // Same server
-    : 'http://localhost:3001'; // Different server (e.g., Live Server)
+// API Configuration - Always use relative URLs
+const API_BASE_URL = '';
 
 // DOM Elements
 const waitlistTrigger = document.querySelector('.waitlist-trigger');
@@ -98,6 +96,9 @@ function updateWaitlistCount(count) {
 async function fetchWaitlistCount() {
     try {
         const response = await fetch(`${API_BASE_URL}/api/waitlist/count`);
+        if (!response.ok) {
+            throw new Error('API not available');
+        }
         const data = await response.json();
         
         if (data.success && typeof data.count === 'number') {
@@ -115,9 +116,13 @@ async function fetchWaitlistCount() {
             }
         }
     } catch (error) {
-        // Show 150 if API fails
-        if (waitlistCountElement) waitlistCountElement.textContent = '150';
-        if (ctaCountElement) ctaCountElement.textContent = '150+';
+        // Silently fail and show 150 as fallback
+        if (waitlistCountElement && waitlistCountElement.textContent === '0') {
+            waitlistCountElement.textContent = '150';
+        }
+        if (ctaCountElement && !ctaCountElement.textContent) {
+            ctaCountElement.textContent = '150+';
+        }
     }
 }
 
