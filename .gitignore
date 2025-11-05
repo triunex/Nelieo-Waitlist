@@ -1,8 +1,5 @@
 ﻿node_modules/
 *.db
-*.db-shm
-*.db-wal
 *.log
 .env
 .DS_Store
-backups/

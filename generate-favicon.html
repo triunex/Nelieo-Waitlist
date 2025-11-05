@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Favicon Generator - Nelieo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #000;
+            color: #fff;
+            padding: 40px;
+        }
+        canvas {
+            border: 2px solid #333;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 12px 24px;
+            background: #007aff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 8px;
+        }
+        button:hover {
+            background: #0066cc;
+        }
+        .preview {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .preview-item {
+            text-align: center;
+        }
+        .preview-item img {
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        .preview-label {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #888;
+        }
+        .instructions {
+            max-width: 600px;
+            margin-top: 40px;
+            padding: 20px;
+            background: #111;
+            border-radius: 12px;
+        }
+        .instructions h3 {
+            margin-bottom: 12px;
+        }
+        .instructions ol {
+            padding-left: 24px;
+        }
+        .instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nelieo Favicon Generator</h1>
+    <p>Creates a circular favicon with the Nelieo logo</p>
+    
+    <canvas id="faviconCanvas" width="512" height="512"></canvas>
+    
+    <div>
+        <button onclick="generateFavicon()">Generate Favicon</button>
+        <button onclick="downloadFavicon()">Download PNG</button>
+        <button onclick="downloadICO()">Download ICO</button>
+    </div>
+    
+    <div class="preview">
+        <div class="preview-item">
+            <img id="preview16" width="16" height="16">
+            <div class="preview-label">16x16</div>
+        </div>
+        <div class="preview-item">
+            <img id="preview32" width="32" height="32">
+            <div class="preview-label">32x32</div>
+        </div>
+        <div class="preview-item">
+            <img id="preview48" width="48" height="48">
+            <div class="preview-label">48x48</div>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        <h3>📝 How to Use:</h3>
+        <ol>
+            <li>Click "Generate Favicon" to create the circular logo</li>
+            <li>Click "Download PNG" to save as <code>favicon.png</code></li>
+            <li>Save the file to your <code>/waitlist/</code> folder</li>
+            <li>The favicon is already linked in all HTML files!</li>
+        </ol>
+        <p><strong>Note:</strong> Make sure your <code>nelieo-mark.png</code> logo is in the same folder.</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('faviconCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function generateFavicon() {
+            // Clear canvas
+            ctx.clearRect(0, 0, 512, 512);
+            
+            // Draw circular background
+            ctx.fillStyle = '#007aff';
+            ctx.beginPath();
+            ctx.arc(256, 256, 256, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add subtle gradient
+            const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.1)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(256, 256, 256, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Try to load and draw the logo
+            const logo = new Image();
+            logo.crossOrigin = 'anonymous';
+            logo.onload = function() {
+                // Draw logo in the center, slightly smaller to fit nicely
+                const logoSize = 360;
+                const logoX = (512 - logoSize) / 2;
+                const logoY = (512 - logoSize) / 2;
+                
+                ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+                
+                // Update previews
+                updatePreviews();
+            };
+            logo.onerror = function() {
+                // If logo doesn't load, draw a simple "N"
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 360px Inter, -apple-system, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('N', 256, 266);
+                
+                updatePreviews();
+            };
+            logo.src = 'nelieo-mark.png';
+        }
+        
+        function updatePreviews() {
+            const dataURL = canvas.toDataURL('image/png');
+            document.getElementById('preview16').src = dataURL;
+            document.getElementById('preview32').src = dataURL;
+            document.getElementById('preview48').src = dataURL;
+        }
+        
+        function downloadFavicon() {
+            const link = document.createElement('a');
+            link.download = 'favicon.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        function downloadICO() {
+            // For ICO, we'll just download the PNG version
+            // You can convert it to ICO using online tools if needed
+            alert('Download the PNG and use an online converter (like favicon.io) to create a multi-size ICO file if needed.');
+            downloadFavicon();
+        }
+        
+        // Generate on page load
+        window.onload = generateFavicon;
+    </script>
+</body>
+</html>
