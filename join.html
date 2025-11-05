@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*;">
     <title>Join our waitlist - Nelieo</title>
-    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="join-styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -135,16 +134,10 @@
                         <path d="M20 32L28 40L44 24" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </div>
-                <h2 class="success-title">🎉 You're on the list!</h2>
-                <div class="success-details">
-                    <p class="success-main-text">We've sent a confirmation email to:</p>
-                    <p class="confirmed-email" id="confirmedEmail">email@example.com</p>
-                    <div class="position-badge">
-                        <span class="position-label">Your Position</span>
-                        <span class="position-number">#<span id="positionNumber">-</span></span>
-                    </div>
-                </div>
-                <a href="/" class="back-button">← Back to Home</a>
+                <h2>You're on the list!</h2>
+                <p>We've sent a confirmation email to <strong id="confirmedEmail"></strong></p>
+                <p class="position-info">Your position: <strong>#<span id="positionNumber">-</span></strong></p>
+                <a href="/" class="back-button">Back to Home</a>
             </div>
         </div>
     </div>

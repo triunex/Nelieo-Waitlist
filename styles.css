@@ -42,9 +42,7 @@ body {
     right: 0;
     z-index: 1000;
     padding: 20px 0;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: transparent;
 }
 
 .nav-container {
